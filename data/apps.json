@@ -1,0 +1,19 @@
+{
+  "defaultApp": "telecom",
+  "apps": [
+    {
+      "id": "telecom",
+      "name": "Telecom",
+      "description": "Telecom 应用测试版",
+      "icon": "📞",
+      "color": "#667eea"
+    },
+    {
+      "id": "partner",
+      "name": "Partner",
+      "description": "Partner 应用测试版",
+      "icon": "🤝",
+      "color": "#ed8936"
+    }
+  ]
+}
