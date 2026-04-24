@@ -269,6 +269,69 @@
             font-size: 0.95em;
         }
 
+        .history-section {
+            animation: fadeInUp 0.6s ease-out 0.4s backwards;
+        }
+
+        .history-list {
+            margin-top: 15px;
+        }
+
+        .history-item {
+            background: rgba(255, 255, 255, 0.7);
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 10px;
+            border-left: 3px solid #00b4db;
+            transition: all 0.2s;
+        }
+
+        .history-item:hover {
+            background: rgba(255, 255, 255, 0.85);
+            box-shadow: 0 2px 8px rgba(0, 180, 219, 0.15);
+        }
+
+        .history-item-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .history-version {
+            font-weight: 600;
+            color: #0369a1;
+            font-size: 1.05em;
+        }
+
+        .history-time {
+            font-size: 0.85em;
+            color: #64748b;
+        }
+
+        .history-meta {
+            font-size: 0.9em;
+            color: #475569;
+            margin-bottom: 10px;
+        }
+
+        .history-download-btn {
+            background: #00b4db;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.9em;
+            transition: background 0.2s;
+        }
+
+        .history-download-btn:hover {
+            background: #0083b0;
+        }
+
         @media (max-width: 600px) {
             .header h1 {
                 font-size: 2.2em;
@@ -339,6 +402,12 @@
                     <div class="changelog-content" id="changelog"></div>
                 </div>
             </div>
+
+            <div class="card history-section" id="historySection" style="display: none;">
+                <h3 style="margin-bottom: 20px; color: #0369a1; font-size: 1.3em;">📚 历史版本</h3>
+                <div id="historyList" class="history-list"></div>
+            </div>
+        </div>
 
             <div style="text-align: center;">
                 <a href="../" class="back-link">← 返回应用列表</a>
@@ -456,6 +525,10 @@
                 };
                 checksumDiv.appendChild(copyButton);
             }
+
+            // 加载历史版本
+            const appId = window.location.pathname.split('/')[2];
+            loadHistoryVersions(appId);
         }
 
         // 加载下载统计
@@ -473,6 +546,74 @@
                 console.error('获取统计失败:', error);
                 document.getElementById('downloadCount').textContent = 'N/A';
             }
+        }
+
+        // 加载历史版本
+        async function loadHistoryVersions(appId) {
+            try {
+                const res = await fetch(`/api/versions/${appId}`);
+                if (res.ok) {
+                    const result = await res.json();
+                    if (result.success && result.data.length > 1) {
+                        // 只显示历史版本（排除第一个，因为它是当前版本）
+                        const historyVersions = result.data.slice(1);
+                        displayHistoryVersions(historyVersions);
+                    }
+                }
+            } catch (error) {
+                console.error('获取历史版本失败:', error);
+            }
+        }
+
+        // 显示历史版本列表
+        function displayHistoryVersions(versions) {
+            const historySection = document.getElementById('historySection');
+            const historyList = document.getElementById('historyList');
+
+            if (versions.length === 0) {
+                historySection.style.display = 'none';
+                return;
+            }
+
+            historyList.innerHTML = versions.map(version => `
+                <div class="history-item">
+                    <div class="history-item-header">
+                        <div class="history-version">📦 ${version.versionName}</div>
+                        <div class="history-time">${formatTime(version.publishTime)}</div>
+                    </div>
+                    <div class="history-meta">
+                        构建号: ${version.versionCode} | 文件: ${version.fileName}
+                    </div>
+                    <button class="history-download-btn" onclick="downloadHistoryVersion('${version.apkUrl}', '${version.fileName}', '${version.versionCode}', '${version.versionName}')">
+                        📥 下载此版本
+                    </button>
+                </div>
+            `).join('');
+
+            historySection.style.display = 'block';
+        }
+
+        // 下载历史版本
+        async function downloadHistoryVersion(apkUrl, fileName, versionCode, versionName) {
+            // 上报统计
+            try {
+                const appId = window.location.pathname.split('/')[2]; // telecom or partner
+                await fetch('/api/downloads', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        app_id: appId,
+                        version_code: versionCode,
+                        version_name: versionName,
+                        file_name: fileName
+                    })
+                });
+            } catch (error) {
+                console.error('统计上报失败:', error);
+            }
+
+            // 下载文件
+            window.location.href = apkUrl;
         }
 
         // 页面加载时执行

@@ -12,7 +12,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SOURCE_BASE_DIR="${SCRIPT_DIR}/data/apps"
 SERVER_USER="ubuntu"
 SERVER_HOST="43.136.56.11"
-SERVER_KEY="/Volumes/macOS/Donwloads/claude.pem"
+SERVER_KEY="/Volumes/macOS/documents/密钥/mac.pem"
 SERVER_BASE_DIR="/home/ubuntu/app/android-test-distribution/data/apps"
 
 # 颜色输出

@@ -99,3 +99,18 @@ to-publish/*.apk
 test-*.html
 test-*.sh
 debug-*.html
+
+# 版本历史记录
+.version_history/
+
+# 临时文件和测试文件
+stats-api/-s
+stats-api/2
+stats-api/android-test-web
+stats-api/curl
+stats-api/docker-compose
+stats-api/restart
+stats-api/sleep
+
+# 本地开发文件
+data/.local_dev

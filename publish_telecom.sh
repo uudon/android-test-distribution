@@ -34,6 +34,39 @@ important() {
     echo -e "${YELLOW}⚠ $1${NC}"
 }
 
+# 版本号递增函数
+increment_version() {
+    local version=$1
+    local major minor patch
+    IFS='.' read -r major minor patch <<< "$version"
+    echo "${major}.${minor}.$((patch + 1))"
+}
+
+# 读取版本历史
+read_version_history() {
+    if [ -f "$VERSION_HISTORY_FILE" ]; then
+        LAST_VERSION=$(grep -o '"last_version": "[^"]*"' "$VERSION_HISTORY_FILE" | sed 's/"last_version": "\(.*\)"/\1/')
+        LAST_CODE=$(grep -o '"last_code": [0-9]*' "$VERSION_HISTORY_FILE" | sed 's/"last_code": \([0-9]*\)/\1/')
+    else
+        LAST_VERSION=""
+        LAST_CODE=""
+    fi
+}
+
+# 保存版本历史
+save_version_history() {
+    local version=$1
+    local code=$2
+    mkdir -p "$VERSION_HISTORY_DIR"
+    cat > "$VERSION_HISTORY_FILE" << EOF
+{
+  "last_version": "$version",
+  "last_code": $code,
+  "last_updated": "$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
+}
+EOF
+}
+
 # 应用配置
 APP_ID="telecom"
 APP_NAME="Telecom"
@@ -42,6 +75,8 @@ APP_ICON="📞"
 # 项目目录
 PROJECT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 APK_DIR="$PROJECT_DIR/to-publish/$APP_ID"
+VERSION_HISTORY_DIR="$PROJECT_DIR/.version_history"
+VERSION_HISTORY_FILE="$VERSION_HISTORY_DIR/$APP_ID.json"
 
 echo -e "${CYAN}"
 echo "========================================"
@@ -116,8 +151,18 @@ echo ""
 info "请输入版本信息"
 echo ""
 
-# 尝试从文件名提取版本号
-if [[ "$APK_FILENAME" =~ ${APP_ID}-([0-9]+\.[0-9]+\.[0-9]+)-([0-9]+) ]]; then
+# 读取本地版本历史
+read_version_history
+
+# 优先使用本地历史记录，其次尝试从文件名提取
+if [ -n "$LAST_VERSION" ]; then
+    SUGGESTED_VERSION=$(increment_version "$LAST_VERSION")
+    SUGGESTED_CODE=$((LAST_CODE + 1))
+    important "检测到上次发布版本："
+    echo "  版本号: $LAST_VERSION → 建议使用: $SUGGESTED_VERSION"
+    echo "  构建号: $LAST_CODE → 建议使用: $SUGGESTED_CODE"
+    echo ""
+elif [[ "$APK_FILENAME" =~ ${APP_ID}-([0-9]+\.[0-9]+\.[0-9]+)-([0-9]+) ]]; then
     SUGGESTED_VERSION="${BASH_REMATCH[1]}"
     SUGGESTED_CODE="${BASH_REMATCH[2]}"
     important "检测到文件名中的版本信息："
@@ -157,7 +202,7 @@ while true; do
         VERSION_CODE=${VERSION_CODE:-$SUGGESTED_CODE}
     else
         info "检查 $APP_NAME 当前最新构建号..."
-        LATEST_CODE=$(ssh -i "/Volumes/macOS/Donwloads/claude.pem" \
+        LATEST_CODE=$(ssh -i "/Volumes/macOS/documents/密钥/mac.pem" \
             -o StrictHostKeyChecking=no \
             -o ConnectTimeout=5 \
             ubuntu@43.136.56.11 \
@@ -238,6 +283,9 @@ cd "$PROJECT_DIR"
 PUBLISH_RESULT=$?
 
 if [ $PUBLISH_RESULT -eq 0 ]; then
+    # 保存版本历史
+    save_version_history "$VERSION_NAME" "$VERSION_CODE"
+
     echo ""
     success "================================"
     success "发布成功！"

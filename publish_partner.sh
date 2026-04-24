@@ -157,7 +157,7 @@ while true; do
         VERSION_CODE=${VERSION_CODE:-$SUGGESTED_CODE}
     else
         info "检查 $APP_NAME 当前最新构建号..."
-        LATEST_CODE=$(ssh -i "/Volumes/macOS/Donwloads/claude.pem" \
+        LATEST_CODE=$(ssh -i "/Volumes/macOS/documents/密钥/mac.pem" \
             -o StrictHostKeyChecking=no \
             -o ConnectTimeout=5 \
             ubuntu@43.136.56.11 \

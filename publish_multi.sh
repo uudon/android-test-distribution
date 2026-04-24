@@ -120,6 +120,12 @@ QR_DEST="$QR_DIR/latest.png"
 cp "$APK_PATH" "$APK_DEST"
 success "APK 已复制到: $APK_DEST"
 
+# ==================== 计算 APK 校验和 ====================
+
+info "计算 APK 校验和..."
+CHECKSUM=$(shasum -a 256 "$APK_DEST" | cut -d' ' -f1)
+success "SHA256 校验和: $CHECKSUM"
+
 # ==================== 生成 latest.json ====================
 
 info "生成 latest.json..."
@@ -134,7 +140,8 @@ cat > "$LATEST_JSON" << EOF
   "qrUrl": "./qr/latest.png",
   "publishTime": "${PUBLISH_TIME}",
   "buildType": "${BUILD_TYPE}",
-  "changelog": $(echo "$CHANGELOG" | jq -Rs .)
+  "changelog": $(echo "$CHANGELOG" | jq -Rs .),
+  "checksum": "${CHECKSUM}"
 }
 EOF
 
@@ -153,7 +160,8 @@ NEW_VERSION=$(cat << EOF
   "apkUrl": "./apk/${STANDARD_APK_NAME}",
   "publishTime": "${PUBLISH_TIME}",
   "buildType": "${BUILD_TYPE}",
-  "changelog": $(echo "$CHANGELOG" | jq -Rs .)
+  "changelog": $(echo "$CHANGELOG" | jq -Rs .),
+  "checksum": "${CHECKSUM}"
 }
 EOF
 )
@@ -177,6 +185,45 @@ else
 fi
 
 success "versions.json 已更新"
+
+# ==================== 清理旧版本 ====================
+
+cleanup_old_versions() {
+    local app_id="$1"
+    local versions_file="$VERSIONS_JSON"
+    local apk_dir="$APK_DIR"
+
+    # 获取当前版本数量
+    local version_count=$(jq 'length' "$versions_file")
+
+    # 如果超过 5 个，删除最旧的
+    if [ "$version_count" -gt 5 ]; then
+        local versions_to_remove=$((version_count - 5))
+        info "检测到 $version_count 个版本，清理 $versions_to_remove 个旧版本..."
+
+        for ((i=0; i<versions_to_remove; i++)); do
+            # 获取最旧的版本信息（数组末尾）
+            local old_version=$(jq -r '.[-1]' "$versions_file")
+            local old_file=$(echo "$old_version" | jq -r '.fileName')
+
+            if [ -n "$old_file" ] && [ -f "$apk_dir/$old_file" ]; then
+                info "删除旧 APK: $old_file"
+                rm -f "$apk_dir/$old_file"
+            fi
+
+            # 从数组中移除最后一个元素
+            jq 'del(.[-1])' "$versions_file" > "${versions_file}.tmp"
+            mv "${versions_file}.tmp" "$versions_file"
+        done
+
+        success "旧版本清理完成，保留最近 5 个版本"
+    else
+        info "当前版本数量: $version_count，无需清理"
+    fi
+}
+
+# 执行清理
+cleanup_old_versions "$APP_ID"
 
 # ==================== 生成二维码 ====================
 
@@ -205,7 +252,7 @@ fi
 
 info "同步到服务器 ${SERVER_USER}@${SERVER_HOST}..."
 rsync -avz --delete \
-    -e "ssh -i /Volumes/macOS/Donwloads/claude.pem -o StrictHostKeyChecking=no" \
+    -e "ssh -i /Volumes/macOS/documents/key/codex.pem -o StrictHostKeyChecking=no" \
     "$DATA_DIR/" \
     "${SERVER_USER}@${SERVER_HOST}:${REMOTE_DIR}/data/"
 
@@ -225,6 +272,9 @@ echo "  - 构建号: ${VERSION_CODE}"
 echo "  - 构建类型: ${BUILD_TYPE}"
 echo "  - 发布时间: ${PUBLISH_TIME}"
 echo "  - 文件名: ${STANDARD_APK_NAME}"
+echo ""
+info "校验和："
+echo "  - SHA256: ${CHECKSUM}"
 echo ""
 info "访问地址："
 echo "  - 应用选择页: ${BASE_URL%android/}"

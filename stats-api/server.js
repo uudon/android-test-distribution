@@ -1,4 +1,6 @@
 const express = require('express');
+const fs = require('fs');
+const path = require('path');
 const db = require('./database');
 
 const app = express();
@@ -42,6 +44,36 @@ app.get('/api/stats/:appId', async (req, res) => {
   } catch (error) {
     console.error('Get stats failed:', error);
     res.status(500).json({ success: false, error: 'Get stats failed' });
+  }
+});
+
+// Get historical versions
+app.get('/api/versions/:appId', async (req, res) => {
+  try {
+    const appId = req.params.appId;
+    const versionsPath = path.join('/usr/share/nginx/html/android/apps', appId, 'versions.json');
+
+    // 读取 versions.json
+    fs.readFile(versionsPath, 'utf8', (err, data) => {
+      if (err) {
+        if (err.code === 'ENOENT') {
+          return res.status(404).json({ success: false, error: 'Versions not found' });
+        }
+        console.error('Read versions.json failed:', err);
+        return res.status(500).json({ success: false, error: 'Read versions failed' });
+      }
+
+      try {
+        const versions = JSON.parse(data);
+        res.json({ success: true, data: versions });
+      } catch (parseError) {
+        console.error('Parse versions.json failed:', parseError);
+        res.status(500).json({ success: false, error: 'Parse versions failed' });
+      }
+    });
+  } catch (error) {
+    console.error('Get versions failed:', error);
+    res.status(500).json({ success: false, error: 'Get versions failed' });
   }
 });
 

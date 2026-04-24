@@ -187,7 +187,7 @@ fi
 
 info "同步到服务器 ${SERVER_USER}@${SERVER_HOST}..."
 rsync -avz --delete \
-    -e "ssh -i /Volumes/macOS/Donwloads/claude.pem -o StrictHostKeyChecking=no" \
+    -e "ssh -i /Volumes/macOS/documents/密钥/mac.pem -o StrictHostKeyChecking=no" \
     "$DATA_DIR/" \
     "${SERVER_USER}@${SERVER_HOST}:${REMOTE_DIR}/data/"
 
