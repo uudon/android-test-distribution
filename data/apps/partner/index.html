@@ -306,6 +306,15 @@
                         <div class="info-label">🕐 发布时间</div>
                         <div class="info-value" id="publishTime" style="font-size: 1.1em;">-</div>
                     </div>
+                    <div class="info-item">
+                        <div class="info-label">📊 总下载次数</div>
+                        <div class="info-value" id="downloadCount">-</div>
+                    </div>
+                </div>
+
+                <div class="info-item" id="checksumSection" style="display: none;">
+                    <div class="info-label">🔐 SHA256校验和</div>
+                    <div class="info-value" id="checksum" style="font-family: monospace; font-size: 0.9em; word-break: break-all;"></div>
                 </div>
 
                 <a href="#" id="downloadButton" class="download-button">
@@ -381,16 +390,80 @@
 
             // 设置下载链接
             const downloadButton = document.getElementById('downloadButton');
-            downloadButton.href = data.apkUrl;
+            downloadButton.removeAttribute('href');  // 移除直接链接
+            downloadButton.style.cursor = 'pointer';
+
+            // 添加点击事件监听
+            downloadButton.addEventListener('click', async function(e) {
+                e.preventDefault();
+
+                // 1. 上报下载统计
+                try {
+                    await fetch('/api/downloads', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            app_id: 'partner',
+                            version_code: data.versionCode,
+                            version_name: data.versionName,
+                            file_name: data.fileName
+                        })
+                    });
+                } catch (error) {
+                    console.error('统计上报失败:', error);
+                }
+
+                // 2. 执行下载
+                window.location.href = data.apkUrl;
+            });
+
             downloadButton.textContent = `📥 下载 ${data.fileName}`;
 
             // 设置二维码
             document.getElementById('qrImage').src = data.qrUrl + getTimestamp();
 
+            // 加载下载统计
+            loadDownloadStats('partner');
+
             // 显示更新说明
             if (data.changelog) {
                 document.getElementById('changelogSection').style.display = 'block';
                 document.getElementById('changelog').textContent = data.changelog;
+            }
+
+            // 显示校验和信息（如果存在）
+            if (data.checksum) {
+                document.getElementById('checksumSection').style.display = 'block';
+                const checksumDiv = document.getElementById('checksum');
+                checksumDiv.textContent = data.checksum;
+
+                // 添加复制按钮
+                const copyButton = document.createElement('button');
+                copyButton.textContent = '📋 复制';
+                copyButton.style.cssText = 'margin-left: 10px; padding: 4px 8px; font-size: 0.8em; border-radius: 4px; border: 1px solid #f5576c; background: #f5576c; color: white; cursor: pointer;';
+                copyButton.onclick = function() {
+                    navigator.clipboard.writeText(data.checksum);
+                    copyButton.textContent = '✅ 已复制';
+                    setTimeout(() => { copyButton.textContent = '📋 复制'; }, 2000);
+                };
+                checksumDiv.appendChild(copyButton);
+            }
+        }
+
+        // 加载下载统计
+        async function loadDownloadStats(appId) {
+            try {
+                const res = await fetch(`/api/stats/${appId}`);
+                if (res.ok) {
+                    const result = await res.json();
+                    if (result.success) {
+                        document.getElementById('downloadCount').textContent =
+                            result.data.total_downloads.toLocaleString();
+                    }
+                }
+            } catch (error) {
+                console.error('获取统计失败:', error);
+                document.getElementById('downloadCount').textContent = 'N/A';
             }
         }
 
