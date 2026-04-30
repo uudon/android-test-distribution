@@ -328,6 +328,137 @@
             background: #f093fb;
         }
 
+        .history-actions {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .history-download-btn,
+        .history-qr-btn {
+            flex: 1;
+            min-width: 120px;
+            background: #f5576c;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.9em;
+            transition: all 0.2s;
+        }
+
+        .history-download-btn:hover {
+            background: #f093fb;
+        }
+
+        .history-qr-btn {
+            background: #6366f1;
+        }
+
+        .history-qr-btn:hover {
+            background: #4f46e5;
+        }
+
+        .qr-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(5px);
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            animation: fadeIn 0.2s ease-out;
+        }
+
+        .qr-modal-content {
+            background: white;
+            border-radius: 16px;
+            padding: 30px;
+            max-width: 400px;
+            width: 90%;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+            animation: slideIn 0.3s ease-out;
+        }
+
+        .qr-modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .qr-modal-header h3 {
+            margin: 0;
+            font-size: 1.3em;
+            color: #881337;
+        }
+
+        .qr-modal-close {
+            background: none;
+            border: none;
+            font-size: 1.5em;
+            cursor: pointer;
+            color: #64748b;
+            padding: 0;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            transition: background 0.2s;
+        }
+
+        .qr-modal-close:hover {
+            background: #f1f5f9;
+        }
+
+        .qr-modal-body {
+            text-align: center;
+        }
+
+        .qr-info {
+            margin-bottom: 15px;
+            font-weight: 600;
+            color: #be123c;
+            font-size: 1.1em;
+        }
+
+        .qr-code-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin: 20px 0;
+            min-height: 200px;
+        }
+
+        .qr-hint {
+            color: #64748b;
+            font-size: 0.9em;
+            margin-top: 15px;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-20px) scale(0.95);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+        }
+
         @media (max-width: 600px) {
             .header h1 {
                 font-size: 2.2em;
@@ -403,6 +534,21 @@
 
             <div style="text-align: center;">
                 <a href="../" class="back-link">← 返回应用列表</a>
+            </div>
+        </div>
+
+        <!-- 二维码模态框 -->
+        <div id="qrModal" class="qr-modal" style="display: none;">
+            <div class="qr-modal-content">
+                <div class="qr-modal-header">
+                    <h3 id="qrModalTitle">版本下载二维码</h3>
+                    <button class="qr-modal-close" onclick="closeQrModal()">✕</button>
+                </div>
+                <div class="qr-modal-body">
+                    <div class="qr-info" id="qrModalInfo"></div>
+                    <div id="qrCodeContainer" class="qr-code-container"></div>
+                    <p class="qr-hint">📱 扫描二维码即可下载此版本</p>
+                </div>
             </div>
         </div>
 
@@ -576,9 +722,14 @@
                     <div class="history-meta">
                         构建号: ${version.versionCode} | 文件: ${version.fileName}
                     </div>
-                    <button class="history-download-btn" onclick="downloadHistoryVersion('${version.apkUrl}', '${version.fileName}', '${version.versionCode}', '${version.versionName}')">
-                        📥 下载此版本
-                    </button>
+                    <div class="history-actions">
+                        <button class="history-download-btn" onclick="downloadHistoryVersion('${version.apkUrl}', '${version.fileName}', '${version.versionCode}', '${version.versionName}')">
+                            📥 下载此版本
+                        </button>
+                        <button class="history-qr-btn" onclick="showQrCode('${version.apkUrl}', '${version.versionName}', '${version.versionCode}')">
+                            🔳 二维码
+                        </button>
+                    </div>
                 </div>
             `).join('');
 
@@ -606,6 +757,61 @@
 
             // 下载文件
             window.location.href = apkUrl;
+        }
+
+        // 显示二维码弹窗
+        function showQrCode(apkUrl, versionName, versionCode) {
+            loadQrCodeLibrary(() => {
+                const modal = document.getElementById('qrModal');
+                const title = document.getElementById('qrModalTitle');
+                const info = document.getElementById('qrModalInfo');
+                const container = document.getElementById('qrCodeContainer');
+
+                // 设置标题和信息
+                title.textContent = '版本下载二维码';
+                info.textContent = `${versionName} (${versionCode})`;
+
+                // 清空并生成新二维码
+                container.innerHTML = '';
+                const fullUrl = window.location.origin + apkUrl.replace(/^\./, window.location.pathname.replace(/[^/]+$/, ''));
+
+                new QRCode(container, {
+                    text: fullUrl,
+                    width: 200,
+                    height: 200,
+                    colorDark: '#000000',
+                    colorLight: '#ffffff',
+                    correctLevel: QRCode.CorrectLevel.M
+                });
+
+                // 显示弹窗
+                modal.style.display = 'flex';
+
+                // 点击背景关闭
+                modal.onclick = (e) => {
+                    if (e.target === modal) {
+                        closeQrModal();
+                    }
+                };
+            });
+        }
+
+        // 关闭二维码弹窗
+        function closeQrModal() {
+            document.getElementById('qrModal').style.display = 'none';
+        }
+
+        // 动态加载 qrcode.js 库
+        function loadQrCodeLibrary(callback) {
+            if (window.QRCode) {
+                callback();
+                return;
+            }
+
+            const script = document.createElement('script');
+            script.src = 'https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js';
+            script.onload = callback;
+            document.head.appendChild(script);
         }
 
         // 页面加载时执行
