@@ -8,14 +8,3 @@ services:
       - ./data:/usr/share/nginx/html/android
       - ./nginx/default.conf:/etc/nginx/conf.d/default.conf
     restart: unless-stopped
-
-  android-stats-api:
-    build: ./stats-api
-    container_name: android-stats-api
-    ports:
-      - "3001:3000"
-    volumes:
-      - ./stats-api/data:/app/data
-      - ./data:/usr/share/nginx/html/android
-      - ./stats-api/server.js:/app/server.js
-    restart: unless-stopped

@@ -500,10 +500,6 @@
                         <div class="info-label">🕐 发布时间</div>
                         <div class="info-value" id="publishTime" style="font-size: 1.1em;">-</div>
                     </div>
-                    <div class="info-item">
-                        <div class="info-label">📊 总下载次数</div>
-                        <div class="info-value" id="downloadCount">-</div>
-                    </div>
                 </div>
 
                 <div class="info-item" id="checksumSection" style="display: none;">
@@ -609,26 +605,8 @@
             downloadButton.style.cursor = 'pointer';
 
             // 添加点击事件监听
-            downloadButton.addEventListener('click', async function(e) {
+            downloadButton.addEventListener('click', function(e) {
                 e.preventDefault();
-
-                // 1. 上报下载统计
-                try {
-                    await fetch('/api/downloads', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            app_id: 'partner',
-                            version_code: data.versionCode,
-                            version_name: data.versionName,
-                            file_name: data.fileName
-                        })
-                    });
-                } catch (error) {
-                    console.error('统计上报失败:', error);
-                }
-
-                // 2. 执行下载
                 window.location.href = data.apkUrl;
             });
 
@@ -636,9 +614,6 @@
 
             // 设置二维码
             document.getElementById('qrImage').src = data.qrUrl + getTimestamp();
-
-            // 加载下载统计
-            loadDownloadStats('partner');
 
             // 显示更新说明
             if (data.changelog) {
@@ -667,23 +642,6 @@
             // 加载历史版本
             const appId = window.location.pathname.split('/')[2];
             loadHistoryVersions(appId);
-        }
-
-        // 加载下载统计
-        async function loadDownloadStats(appId) {
-            try {
-                const res = await fetch(`/api/stats/${appId}`);
-                if (res.ok) {
-                    const result = await res.json();
-                    if (result.success) {
-                        document.getElementById('downloadCount').textContent =
-                            result.data.total_downloads.toLocaleString();
-                    }
-                }
-            } catch (error) {
-                console.error('获取统计失败:', error);
-                document.getElementById('downloadCount').textContent = 'N/A';
-            }
         }
 
         // 加载历史版本
@@ -723,7 +681,7 @@
                         构建号: ${version.versionCode} | 文件: ${version.fileName}
                     </div>
                     <div class="history-actions">
-                        <button class="history-download-btn" onclick="downloadHistoryVersion('${version.apkUrl}', '${version.fileName}', '${version.versionCode}', '${version.versionName}')">
+                        <button class="history-download-btn" onclick="downloadHistoryVersion('${version.apkUrl}')">
                             📥 下载此版本
                         </button>
                         <button class="history-qr-btn" onclick="showQrCode('${version.apkUrl}', '${version.versionName}', '${version.versionCode}')">
@@ -737,25 +695,7 @@
         }
 
         // 下载历史版本
-        async function downloadHistoryVersion(apkUrl, fileName, versionCode, versionName) {
-            // 上报统计
-            try {
-                const appId = window.location.pathname.split('/')[2]; // telecom or partner
-                await fetch('/api/downloads', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        app_id: appId,
-                        version_code: versionCode,
-                        version_name: versionName,
-                        file_name: fileName
-                    })
-                });
-            } catch (error) {
-                console.error('统计上报失败:', error);
-            }
-
-            // 下载文件
+        function downloadHistoryVersion(apkUrl) {
             window.location.href = apkUrl;
         }
 
