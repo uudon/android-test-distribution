@@ -1,10 +1,11 @@
 {
-  "versionName": "5.10.39",
-  "versionCode": "50100039",
-  "fileName": "telecom-5.10.39-50100039.apk",
-  "apkUrl": "./apk/telecom-5.10.39-50100039.apk",
+  "versionName": "5.10.55",
+  "versionCode": "50100055",
+  "fileName": "telecom-5.10.55-50100055.apk",
+  "apkUrl": "./apk/telecom-5.10.55-50100055.apk",
   "qrUrl": "./qr/latest.png",
-  "publishTime": "2026-04-20T09:18:52.000Z",
+  "publishTime": "2026-04-29T06:45:34.000Z",
   "buildType": "debug",
-  "changelog": "1.激活有流程优化；\n"
+  "changelog": "1.修复入网选号页面\n",
+  "checksum": "5e53506a88d6c2e6914e63546b6f26afc8ed3a7b8d2aee434cd2523c071dd9ff"
 }
